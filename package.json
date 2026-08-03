@@ -1,0 +1,15 @@
+{
+  "name": "chesscom-pinger",
+  "version": "1.0.0",
+  "description": "Ultra-lightweight Chess.com Discord Pinger - Netlify ready",
+  "main": "server.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node server.mjs",
+    "build": "echo 'Netlify build ready'"
+  },
+  "keywords": ["chess.com", "discord", "pinger", "netlify", "chess-bot"],
+  "author": "",
+  "license": "MIT"
+}

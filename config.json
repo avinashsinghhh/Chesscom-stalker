@@ -1,0 +1,14 @@
+{
+  "discordWebhookUrl": "https://discord.com/api/webhooks/1533952492813942946/zXZ7bO8ERbw-2gx7wEf3kRGlqtKngcnZecX1J-shltxlfoZiotGIOpKwCczFRCWCn--g",
+  "pingUserId": "1130131781018984569",
+  "trackedPlayers": [
+    "avinashsinghhhh",
+    "itssumitbro"
+  ],
+  "notifyOnline": true,
+  "notifyOffline": true,
+  "notifyGameStart": true,
+  "notifyGameEnd": true,
+  "onlineThresholdSeconds": 180,
+  "pollIntervalSeconds": 30
+}

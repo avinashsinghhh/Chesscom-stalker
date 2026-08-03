@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chess.com Discord Pinger Dashboard</title>
+  <meta name="description" content="Ultra-lightweight real-time Chess.com player tracker and Discord Pinger app. Netlify & local ready.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="background-glow glow-1"></div>
+  <div class="background-glow glow-2"></div>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="navbar glass-card">
+      <div class="brand">
+        <div class="logo-icon">♟️</div>
+        <div>
+          <h1>Chess.com Discord Pinger</h1>
+          <p class="tagline">Real-time status & game tracker for Discord</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnCheckNow" class="btn btn-secondary">
+          <span class="btn-icon">🔄</span> Check Now
+        </button>
+        <button id="btnTestPing" class="btn btn-primary">
+          <span class="btn-icon">🔔</span> Send Test Ping
+        </button>
+      </div>
+    </header>
+
+    <main class="dashboard-grid">
+      <!-- Left Column: Player Tracker & Add Player -->
+      <section class="main-column">
+        <!-- Tracked Players Section -->
+        <div class="section-card glass-card">
+          <div class="section-header">
+            <h2><span class="header-icon">👑</span> Tracked Players</h2>
+            <span id="playerCountBadge" class="badge badge-info">0 Players</span>
+          </div>
+
+          <form id="addPlayerForm" class="add-player-form">
+            <div class="input-group">
+              <input type="text" id="inputUsername" placeholder="Enter Chess.com username (e.g. hikaru)" required autocomplete="off">
+              <button type="submit" class="btn btn-accent">+ Add Player</button>
+            </div>
+          </form>
+
+          <div id="playersGrid" class="players-grid">
+            <div class="loading-spinner-container">
+              <div class="spinner"></div>
+              <p>Fetching Chess.com player data...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Activity Log -->
+        <div class="section-card glass-card">
+          <div class="section-header">
+            <h2><span class="header-icon">⚡</span> Activity & Event Log</h2>
+            <button id="btnClearLogs" class="btn-text">Clear View</button>
+          </div>
+          <div id="activityLogs" class="activity-logs">
+            <div class="empty-logs">No recent activity logged yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Discord Webhook & Settings -->
+      <aside class="sidebar-column">
+        <div class="section-card glass-card">
+          <div class="section-header">
+            <h2><span class="header-icon">⚙️</span> Discord Settings</h2>
+          </div>
+
+          <form id="settingsForm" class="settings-form">
+            <!-- Discord Webhook URL -->
+            <div class="form-group">
+              <label for="webhookUrl">
+                Discord Webhook URL
+                <span class="tooltip-icon" title="Created in Discord Channel Settings -> Integrations -> Webhooks">❓</span>
+              </label>
+              <input type="password" id="webhookUrl" placeholder="https://discord.com/api/webhooks/..." autocomplete="off">
+              <span id="webhookStatusBadge" class="badge-status badge-unconfigured">Not Configured</span>
+              <small class="form-help">Paste your Discord channel webhook URL here to receive pings.</small>
+            </div>
+
+            <!-- Discord User Mention ID -->
+            <div class="form-group">
+              <label for="pingUserId">
+                Discord Mention / Ping User ID
+                <span class="tooltip-icon" title="Paste your numeric Discord User ID or type 'everyone' or 'here'">❓</span>
+              </label>
+              <input type="text" id="pingUserId" placeholder="e.g. 123456789012345678 or everyone">
+              <small class="form-help">Pings this user ID on Discord when events occur. Format: <code>1234567890</code> or <code>everyone</code>.</small>
+            </div>
+
+            <!-- Online Status Sensitivity / Threshold -->
+            <div class="form-group">
+              <label for="onlineThreshold">
+                Online Detection Sensitivity
+                <span class="tooltip-icon" title="Chess.com API updates last active timestamps with a slight delay. Setting a higher threshold ensures players aren't marked offline prematurely.">❓</span>
+              </label>
+              <select id="onlineThreshold" class="form-select">
+                <option value="180">Strict (3 minutes)</option>
+                <option value="300">Standard (5 minutes)</option>
+                <option value="600" selected>Reliable / Recommended (10 minutes)</option>
+                <option value="900">Relaxed (15 minutes)</option>
+              </select>
+              <small class="form-help">Accounts for Chess.com API CDN caching delays.</small>
+            </div>
+
+            <!-- Event Toggles -->
+            <div class="form-group">
+              <label class="group-label">Notification Triggers</label>
+              
+              <label class="toggle-control">
+                <input type="checkbox" id="notifyOnline" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">🟢 Ping when player comes online</span>
+              </label>
+
+              <label class="toggle-control">
+                <input type="checkbox" id="notifyGameStart" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">⚔️ Ping when player starts a game</span>
+              </label>
+
+              <label class="toggle-control">
+                <input type="checkbox" id="notifyGameEnd" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">🏆 Ping when player finishes a game</span>
+              </label>
+
+              <label class="toggle-control">
+                <input type="checkbox" id="notifyOffline" checked>
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">🔴 Ping when player goes offline</span>
+              </label>
+            </div>
+
+            <!-- Save Button -->
+            <button type="submit" id="btnSaveConfig" class="btn btn-primary btn-block">
+              💾 Save Settings
+            </button>
+          </form>
+        </div>
+
+        <!-- Netlify Quickstart Guide Box -->
+        <div class="section-card glass-card info-card">
+          <h3>🚀 Netlify Deployment Guide</h3>
+          <p>To deploy this app on Netlify with zero cost:</p>
+          <ol class="guide-steps">
+            <li>Push this repository to <strong>GitHub</strong>.</li>
+            <li>Import to <strong>Netlify</strong>.</li>
+            <li>Add environment variables in Netlify site settings:
+              <ul>
+                <li><code>DISCORD_WEBHOOK_URL</code></li>
+                <li><code>PING_USER_ID</code></li>
+                <li><code>TRACKED_PLAYERS</code></li>
+              </ul>
+            </li>
+            <li>Netlify will automatically execute the <code>scheduled-pinger</code> function every minute!</li>
+          </ol>
+        </div>
+      </aside>
+    </main>
+
+    <!-- Toast Notifications Container -->
+    <div id="toastContainer" class="toast-container"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
