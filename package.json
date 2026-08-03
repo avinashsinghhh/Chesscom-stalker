@@ -7,7 +7,10 @@
   "scripts": {
     "start": "node server.mjs",
     "dev": "node server.mjs",
-    "build": "echo 'Netlify build ready'"
+    "build": "echo 'Netlify build complete'"
+  },
+  "dependencies": {
+    "@netlify/functions": "^2.6.0"
   },
   "keywords": ["chess.com", "discord", "pinger", "netlify", "chess-bot"],
   "author": "",

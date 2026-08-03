@@ -8,10 +8,10 @@ function maskWebhook(url) {
   return url.substring(0, 30) + '...' + url.substring(url.length - 6);
 }
 
-export default async function handler(req, context) {
-  const url = new URL(req.url);
-  const path = url.pathname.replace(/^\/\.netlify\/functions\/api/, '').replace(/^\/api/, '');
-  const method = req.method.toUpperCase();
+export const handler = async (event, context) => {
+  const rawPath = event.path || '';
+  const path = rawPath.replace(/^\/\.netlify\/functions\/api/, '').replace(/^\/api/, '');
+  const httpMethod = (event.httpMethod || 'GET').toUpperCase();
 
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -20,35 +20,36 @@ export default async function handler(req, context) {
     'Content-Type': 'application/json'
   };
 
-  if (method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
+  if (httpMethod === 'OPTIONS') {
+    return { statusCode: 204, headers: corsHeaders, body: '' };
   }
 
   try {
     // GET /status
-    if ((path === '/status' || path === '' || path === '/') && method === 'GET') {
+    if ((path === '/status' || path === '' || path === '/') && httpMethod === 'GET') {
       const config = loadConfig();
       const state = loadState();
       const logs = getLogs();
 
-      // Mask webhook for security response
-      const safeConfig = {
-        ...config,
-        discordWebhookUrlMasked: maskWebhook(config.discordWebhookUrl),
-        hasWebhook: Boolean(config.discordWebhookUrl)
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          config: {
+            ...config,
+            discordWebhookUrlMasked: maskWebhook(config.discordWebhookUrl),
+            hasWebhook: Boolean(config.discordWebhookUrl)
+          },
+          playersState: state.players || {},
+          logs
+        })
       };
-
-      return new Response(JSON.stringify({
-        success: true,
-        config: safeConfig,
-        playersState: state.players || {},
-        logs
-      }), { status: 200, headers: corsHeaders });
     }
 
     // POST /config
-    if (path === '/config' && method === 'POST') {
-      const body = await req.json();
+    if (path === '/config' && httpMethod === 'POST') {
+      const body = JSON.parse(event.body || '{}');
       const updated = saveConfig(body);
 
       addLogs([{
@@ -57,29 +58,37 @@ export default async function handler(req, context) {
         timestamp: new Date().toISOString()
       }]);
 
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Configuration saved successfully.',
-        config: {
-          ...updated,
-          discordWebhookUrlMasked: maskWebhook(updated.discordWebhookUrl),
-          hasWebhook: Boolean(updated.discordWebhookUrl)
-        }
-      }), { status: 200, headers: corsHeaders });
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          message: 'Configuration saved successfully.',
+          config: {
+            ...updated,
+            discordWebhookUrlMasked: maskWebhook(updated.discordWebhookUrl),
+            hasWebhook: Boolean(updated.discordWebhookUrl)
+          }
+        })
+      };
     }
 
     // POST /test-ping
-    if (path === '/test-ping' && method === 'POST') {
-      const body = await req.json().catch(() => ({}));
+    if (path === '/test-ping' && httpMethod === 'POST') {
+      const body = JSON.parse(event.body || '{}');
       const config = loadConfig();
       const webhookUrl = body.webhookUrl || config.discordWebhookUrl;
       const pingUserId = body.pingUserId !== undefined ? body.pingUserId : config.pingUserId;
 
       if (!webhookUrl) {
-        return new Response(JSON.stringify({
-          success: false,
-          error: 'Missing Discord Webhook URL. Please paste your Discord Webhook URL first.'
-        }), { status: 400, headers: corsHeaders });
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            success: false,
+            error: 'Missing Discord Webhook URL. Please paste your Discord Webhook URL first.'
+          })
+        };
       }
 
       await sendTestPing(webhookUrl, pingUserId);
@@ -90,14 +99,18 @@ export default async function handler(req, context) {
         timestamp: new Date().toISOString()
       }]);
 
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Test ping sent to Discord successfully!'
-      }), { status: 200, headers: corsHeaders });
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          message: 'Test ping sent to Discord successfully!'
+        })
+      };
     }
 
     // POST /check-now
-    if (path === '/check-now' && method === 'POST') {
+    if (path === '/check-now' && httpMethod === 'POST') {
       const config = loadConfig();
       const state = loadState();
       const playersState = state.players || {};
@@ -115,22 +128,34 @@ export default async function handler(req, context) {
       addLogs(cycleLogs);
       saveState({ players: playersState, logs: cycleLogs, lastRun: new Date().toISOString() });
 
-      return new Response(JSON.stringify({
-        success: true,
-        message: 'Status check complete.',
-        playersState,
-        logs: cycleLogs,
-        notificationsSent: totalNotifications
-      }), { status: 200, headers: corsHeaders });
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          message: 'Status check complete.',
+          playersState,
+          logs: cycleLogs,
+          notificationsSent: totalNotifications
+        })
+      };
     }
 
-    return new Response(JSON.stringify({ error: 'Endpoint not found' }), { status: 404, headers: corsHeaders });
+    return {
+      statusCode: 404,
+      headers: corsHeaders,
+      body: JSON.stringify({ error: 'Endpoint not found' })
+    };
 
   } catch (err) {
-    console.error('[API Error]:', err);
-    return new Response(JSON.stringify({
-      success: false,
-      error: err.message || 'Internal Server Error'
-    }), { status: 500, headers: corsHeaders });
+    console.error('[Netlify API Error]:', err);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({
+        success: false,
+        error: err.message || 'Internal Server Error'
+      })
+    };
   }
-}
+};

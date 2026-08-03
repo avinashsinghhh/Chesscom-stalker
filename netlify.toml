@@ -4,9 +4,7 @@
 
 [functions]
   node_bundler = "esbuild"
-
-[functions."scheduled-pinger"]
-  schedule = "* * * * *"
+  included_files = ["lib/**", "config.json"]
 
 [[redirects]]
   from = "/api/*"

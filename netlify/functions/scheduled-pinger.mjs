@@ -1,10 +1,8 @@
+import { schedule } from '@netlify/functions';
 import { loadConfig, loadState, saveState, addLogs } from '../../lib/storage.mjs';
 import { processPlayerCheck } from '../../lib/pingerCore.mjs';
 
-/**
- * Netlify Scheduled Function (Runs on cron schedule, e.g. every minute)
- */
-export default async function handler(req, context) {
+const pingerHandler = async (event, context) => {
   console.log('[Netlify Scheduled Pinger] Executing check cycle...');
   
   const config = loadConfig();
@@ -26,14 +24,16 @@ export default async function handler(req, context) {
   addLogs(cycleLogs);
   saveState({ players: playersState, logs: cycleLogs, lastRun: new Date().toISOString() });
 
-  return new Response(JSON.stringify({
-    success: true,
-    timestamp: new Date().toISOString(),
-    trackedPlayers: config.trackedPlayers,
-    notificationsSent: totalNotificationsSent,
-    logs: cycleLogs
-  }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' }
-  });
-}
+  return {
+    statusCode: 200,
+    body: JSON.stringify({
+      success: true,
+      timestamp: new Date().toISOString(),
+      trackedPlayers: config.trackedPlayers,
+      notificationsSent: totalNotificationsSent,
+      logs: cycleLogs
+    })
+  };
+};
+
+export const handler = schedule('* * * * *', pingerHandler);
